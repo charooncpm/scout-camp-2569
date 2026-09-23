@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ประมวลภาพกิจกรรมเข้าค่ายลูกเสือ 2569 | วอช.ชัยภูมิ</title>
+  <!-- Tailwind CSS สำหรับจัดสไตล์และรองรับมือถือ -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts Sarabun -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body { font-family: 'Sarabun', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ส่วนหัวเว็บ (Header) -->
+  <header class="bg-gradient-to-r from-amber-800 to-amber-700 text-white shadow-md">
+    <div class="max-w-6xl mx-auto px-4 py-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
+      <div>
+        <span class="inline-block bg-amber-900/50 text-amber-200 text-xs px-3 py-1 rounded-full uppercase tracking-wider font-semibold mb-2">
+          ปีการศึกษา 2569
+        </span>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">กิจกรรมเข้าค่ายพักแรมลูกเสือ - เนตรนารี</h1>
+        <p class="text-amber-100 text-sm sm:text-base mt-1">วิทยาลัยอาชีวศึกษาเมืองชัยภูมิ</p>
+      </div>
+      <div class="mt-4 sm:mt-0 flex justify-center sm:justify-end">
+        <span class="text-xs bg-white/10 px-3 py-1.5 rounded-lg border border-white/20">
+          รวมภาพถ่ายกิจกรรมทุกอัลบั้ม
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- เนื้อหาหลัก (Main Content) -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+    
+    <!-- กล่องแจ้งสถานะโหลด -->
+    <div id="loading" class="flex flex-col items-center justify-center py-20 text-slate-500">
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mb-3"></div>
+      <p class="text-sm">กำลังโหลดอัลบั้มภาพกิจกรรม...</p>
+    </div>
+
+    <!-- กริดแสดงการ์ดอัลบั้ม (Grid Cards) -->
+    <div id="album-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+      <!-- ข้อมูลการ์ดจะถูกใส่ที่นี่อัตโนมัติ -->
+    </div>
+
+  </main>
+
+  <!-- ส่วนท้ายเว็บ (Footer) -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">
+    <p>งานกิจกรรมลูกเสือ วิทยาลัยอาชีวศึกษาเมืองชัยภูมิ</p>
+    <p class="mt-1">คลิกที่อัลบั้มเพื่อเปิดชมภาพความละเอียดสูงบน Google Photos</p>
+  </footer>
+
+  <script>
+    // ** ใส่ Web App URL ของคุณที่ได้จาก Apps Script ที่นี่ **
+    const API_URL = "https://script.google.com/macros/s/AKfycbzzEaDNjZKS81KQ9G5MiOpJSuTM9hKZKmquWwqRVcW55Iq00ap85e4tXDrogvjRZ1H2/exec";
+
+    let albumsData = [];
+
+    // ดึงข้อมูลเมื่อโหลดหน้าเว็บ
+    async function loadAlbums() {
+      try {
+        const response = await fetch(`${API_URL}?action=getAlbums`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          albumsData = result.data;
+          renderAlbums(albumsData);
+        } else {
+          showError("ไม่สามารถดึงข้อมูลอัลบั้มได้");
+        }
+      } catch (err) {
+        showError("เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล");
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('album-grid').classList.remove('hidden');
+      }
+    }
+
+    // วาดการ์ดอัลบั้มบนหน้าจอ
+    function renderAlbums(albums) {
+      const grid = document.getElementById('album-grid');
+      grid.innerHTML = '';
+
+      if (albums.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">ยังไม่มีข้อมูลอัลบั้ม</div>`;
+        return;
+      }
+
+      albums.forEach(album => {
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition duration-200 flex flex-col";
+        
+        card.innerHTML = `
+          <!-- รูปหน้าปก -->
+          <div class="relative w-full h-48 bg-slate-100 overflow-hidden">
+            <img src="${album.cover_url || 'https://via.placeholder.com/600x400?text=ไม่มีรูปหน้าปก'}" 
+                 alt="${album.title}" 
+                 class="w-full h-full object-cover transform hover:scale-105 transition duration-300"
+                 loading="lazy"
+                 onerror="this.src='https://via.placeholder.com/600x400?text=รูปภาพไม่แสดง'">
+            ${album.tag ? `<span class="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-md font-medium">${album.tag}</span>` : ''}
+          </div>
+
+          <!-- ข้อมูลอัลบั้ม -->
+          <div class="p-4 flex flex-col flex-1 justify-between">
+            <div>
+              <h3 class="font-semibold text-slate-800 text-base leading-snug line-clamp-2 mb-2">
+                ${album.title}
+              </h3>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between mt-3">
+              <!-- ยอดเข้าชม -->
+              <div class="flex items-center text-xs text-slate-500 gap-1.5">
+                <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
+                <span><strong id="views-${album.id}">${album.views.toLocaleString()}</strong> ครั้ง</span>
+              </div>
+
+              <!-- ปุ่มเข้าชม -->
+              <button onclick="handleAlbumClick('${album.id}', '${album.photos_url}')" 
+                      class="inline-flex items-center gap-1 bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition">
+                <span>เปิดดูรูป</span>
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // เรียกใช้งานไอคอนของ Lucide
+      lucide.createIcons();
+    }
+
+    // ฟังก์ชันเมื่อคลิกดูอัลบั้ม (นับยอดวิว + เปิด Google Photos)
+    function handleAlbumClick(id, photosUrl) {
+      // 1. อัปเดตตัวเลขหน้าจอทันที (+1) ให้ผู้ใช้เห็นการเปลี่ยนแปลง
+      const viewEl = document.getElementById(`views-${id}`);
+      if (viewEl) {
+        let current = parseInt(viewEl.innerText.replace(/,/g, '')) || 0;
+        viewEl.innerText = (current + 1).toLocaleString();
+      }
+
+      // 2. ส่งคำขอไปบวกคะแนนที่ Apps Script ในพื้นหลัง
+      fetch(`${API_URL}?action=incrementView&id=${id}`).catch(err => console.log(err));
+
+      // 3. เปิดลิงก์อัลบั้ม Google Photos ในแท็บใหม่
+      if (photosUrl && photosUrl.startsWith('http')) {
+        window.open(photosUrl, '_blank');
+      } else {
+        alert('ยังไม่มีลิงก์อัลบั้มสำหรับกิจกรรมนี้');
+      }
+    }
+
+    function showError(msg) {
+      const grid = document.getElementById('album-grid');
+      grid.innerHTML = `<div class="col-span-full text-center py-10 text-red-500">${msg}</div>`;
+    }
+
+    // เริ่มทำงาน
+    loadAlbums();
+  </script>
+</body>
+</html>
