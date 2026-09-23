@@ -2,13 +2,12 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
+  <!-- ปลดล็อกการแสดงรูปภาพจาก Google Photos -->
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ประมวลภาพกิจกรรมเข้าค่ายลูกเสือ 2569 | วอช.ชัยภูมิ</title>
-  <!-- Tailwind CSS สำหรับจัดสไตล์และรองรับมือถือ -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts Sarabun -->
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     body { font-family: 'Sarabun', sans-serif; }
@@ -16,7 +15,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
-  <!-- ส่วนหัวเว็บ (Header) -->
+  <!-- Header -->
   <header class="bg-gradient-to-r from-amber-800 to-amber-700 text-white shadow-md">
     <div class="max-w-6xl mx-auto px-4 py-8 text-center sm:text-left sm:flex sm:items-center sm:justify-between">
       <div>
@@ -34,35 +33,57 @@
     </div>
   </header>
 
-  <!-- เนื้อหาหลัก (Main Content) -->
+  <!-- Main Content -->
   <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
     
-    <!-- กล่องแจ้งสถานะโหลด -->
     <div id="loading" class="flex flex-col items-center justify-center py-20 text-slate-500">
       <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-700 mb-3"></div>
       <p class="text-sm">กำลังโหลดอัลบั้มภาพกิจกรรม...</p>
     </div>
 
-    <!-- กริดแสดงการ์ดอัลบั้ม (Grid Cards) -->
-    <div id="album-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-      <!-- ข้อมูลการ์ดจะถูกใส่ที่นี่อัตโนมัติ -->
-    </div>
+    <!-- Cards Grid -->
+    <div id="album-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
 
   </main>
 
-  <!-- ส่วนท้ายเว็บ (Footer) -->
+  <!-- Modal กล่องกรอกรหัส PIN -->
+  <div id="pin-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2 text-amber-800">
+          <i data-lucide="lock" class="w-5 h-5"></i>
+          <h3 class="font-bold text-lg text-slate-800">อัลบั้มนี้มีรหัสผ่าน</h3>
+        </div>
+        <button onclick="closePinModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <p class="text-xs text-slate-500 mb-4" id="modal-album-title">กรุณากรอกรหัส PIN เพื่อเข้าชมอัลบั้ม</p>
+      
+      <input type="password" id="pin-input" placeholder="ใส่รหัส PIN" 
+             class="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-center tracking-widest text-lg font-bold focus:outline-none focus:ring-2 focus:ring-amber-700 mb-2">
+      <p id="pin-error" class="text-xs text-red-500 mb-4 hidden">รหัส PIN ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง</p>
+      
+      <div class="flex gap-2">
+        <button onclick="closePinModal()" class="w-1/2 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium">
+          ยกเลิก
+        </button>
+        <button onclick="submitPin()" class="w-1/2 py-2 text-sm text-white bg-amber-700 hover:bg-amber-800 rounded-lg font-medium">
+          ยืนยัน
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto">
     <p>งานกิจกรรมลูกเสือ วิทยาลัยอาชีวศึกษาเมืองชัยภูมิ</p>
-    <p class="mt-1">คลิกที่อัลบั้มเพื่อเปิดชมภาพความละเอียดสูงบน Google Photos</p>
   </footer>
 
   <script>
-    // ** ใส่ Web App URL ของคุณที่ได้จาก Apps Script ที่นี่ **
+    // ** ใส่ Web App URL ของคุณที่นี่ **
     const API_URL = "https://script.google.com/macros/s/AKfycbzzEaDNjZKS81KQ9G5MiOpJSuTM9hKZKmquWwqRVcW55Iq00ap85e4tXDrogvjRZ1H2/exec";
 
     let albumsData = [];
+    let currentSelectedAlbum = null;
 
-    // ดึงข้อมูลเมื่อโหลดหน้าเว็บ
     async function loadAlbums() {
       try {
         const response = await fetch(`${API_URL}?action=getAlbums`);
@@ -72,61 +93,59 @@
           albumsData = result.data;
           renderAlbums(albumsData);
         } else {
-          showError("ไม่สามารถดึงข้อมูลอัลบั้มได้");
+          document.getElementById('album-grid').innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">ไม่สามารถโหลดข้อมูลได้</div>`;
         }
       } catch (err) {
-        showError("เกิดข้อผิดพลาดในการเชื่อมต่อข้อมูล");
+        document.getElementById('album-grid').innerHTML = `<div class="col-span-full text-center py-10 text-red-500">เกิดข้อผิดพลาดในการเชื่อมต่อ</div>`;
       } finally {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('album-grid').classList.remove('hidden');
       }
     }
 
-    // วาดการ์ดอัลบั้มบนหน้าจอ
     function renderAlbums(albums) {
       const grid = document.getElementById('album-grid');
       grid.innerHTML = '';
 
-      if (albums.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">ยังไม่มีข้อมูลอัลบั้ม</div>`;
-        return;
-      }
-
       albums.forEach(album => {
+        const hasPin = Boolean(album.pin && album.pin.trim().length > 0);
         const card = document.createElement('div');
-        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition duration-200 flex flex-col";
+        card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition flex flex-col";
         
         card.innerHTML = `
-          <!-- รูปหน้าปก -->
           <div class="relative w-full h-48 bg-slate-100 overflow-hidden">
             <img src="${album.cover_url || 'https://via.placeholder.com/600x400?text=ไม่มีรูปหน้าปก'}" 
+                 referrerpolicy="no-referrer"
                  alt="${album.title}" 
                  class="w-full h-full object-cover transform hover:scale-105 transition duration-300"
-                 loading="lazy"
-                 onerror="this.src='https://via.placeholder.com/600x400?text=รูปภาพไม่แสดง'">
-            ${album.tag ? `<span class="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-md font-medium">${album.tag}</span>` : ''}
-          </div>
-
-          <!-- ข้อมูลอัลบั้ม -->
-          <div class="p-4 flex flex-col flex-1 justify-between">
-            <div>
-              <h3 class="font-semibold text-slate-800 text-base leading-snug line-clamp-2 mb-2">
-                ${album.title}
-              </h3>
+                 loading="lazy">
+            
+            <div class="absolute top-3 left-3 flex gap-1">
+              ${album.tag ? `<span class="bg-black/60 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-md font-medium">${album.tag}</span>` : ''}
             </div>
 
+            ${hasPin ? `
+              <span class="absolute top-3 right-3 bg-red-600/90 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md font-medium flex items-center gap-1">
+                <i data-lucide="lock" class="w-3 h-3"></i> PIN
+              </span>
+            ` : ''}
+          </div>
+
+          <div class="p-4 flex flex-col flex-1 justify-between">
+            <h3 class="font-semibold text-slate-800 text-base leading-snug line-clamp-2 mb-2">
+              ${album.title}
+            </h3>
+
             <div class="pt-4 border-t border-slate-100 flex items-center justify-between mt-3">
-              <!-- ยอดเข้าชม -->
               <div class="flex items-center text-xs text-slate-500 gap-1.5">
                 <i data-lucide="eye" class="w-4 h-4 text-slate-400"></i>
                 <span><strong id="views-${album.id}">${album.views.toLocaleString()}</strong> ครั้ง</span>
               </div>
 
-              <!-- ปุ่มเข้าชม -->
-              <button onclick="handleAlbumClick('${album.id}', '${album.photos_url}')" 
-                      class="inline-flex items-center gap-1 bg-amber-700 hover:bg-amber-800 text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition">
-                <span>เปิดดูรูป</span>
-                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+              <button onclick="onAlbumClick('${album.id}')" 
+                      class="inline-flex items-center gap-1.5 ${hasPin ? 'bg-amber-800 hover:bg-amber-900' : 'bg-amber-700 hover:bg-amber-800'} text-white text-xs font-medium px-3.5 py-1.5 rounded-lg transition">
+                <span>${hasPin ? 'ใส่รหัสเพื่อดูรูป' : 'เปิดดูรูป'}</span>
+                <i data-lucide="${hasPin ? 'key' : 'external-link'}" class="w-3.5 h-3.5"></i>
               </button>
             </div>
           </div>
@@ -134,36 +153,64 @@
         grid.appendChild(card);
       });
 
-      // เรียกใช้งานไอคอนของ Lucide
       lucide.createIcons();
     }
 
-    // ฟังก์ชันเมื่อคลิกดูอัลบั้ม (นับยอดวิว + เปิด Google Photos)
-    function handleAlbumClick(id, photosUrl) {
-      // 1. อัปเดตตัวเลขหน้าจอทันที (+1) ให้ผู้ใช้เห็นการเปลี่ยนแปลง
-      const viewEl = document.getElementById(`views-${id}`);
+    function onAlbumClick(id) {
+      const album = albumsData.find(a => String(a.id) === String(id));
+      if (!album) return;
+
+      if (album.pin && album.pin.trim().length > 0) {
+        // กรณีมีรหัส PIN ให้เปิดกล่องถามรหัส
+        currentSelectedAlbum = album;
+        document.getElementById('modal-album-title').innerText = album.title;
+        document.getElementById('pin-input').value = '';
+        document.getElementById('pin-error').classList.add('hidden');
+        document.getElementById('pin-modal').classList.remove('hidden');
+        document.getElementById('pin-input').focus();
+      } else {
+        // กรณีไม่มีรหัส PIN ให้เปิดดูได้ทันที
+        openAlbum(album);
+      }
+    }
+
+    function submitPin() {
+      const enteredPin = document.getElementById('pin-input').value.trim();
+      if (!currentSelectedAlbum) return;
+
+      if (enteredPin === currentSelectedAlbum.pin) {
+        const albumToOpen = currentSelectedAlbum;
+        closePinModal();
+        openAlbum(albumToOpen);
+      } else {
+        document.getElementById('pin-error').classList.remove('hidden');
+      }
+    }
+
+    function closePinModal() {
+      document.getElementById('pin-modal').classList.add('hidden');
+      currentSelectedAlbum = null;
+    }
+
+    function openAlbum(album) {
+      // +1 ยอดวิวบนหน้าจอ
+      const viewEl = document.getElementById(`views-${album.id}`);
       if (viewEl) {
         let current = parseInt(viewEl.innerText.replace(/,/g, '')) || 0;
         viewEl.innerText = (current + 1).toLocaleString();
       }
 
-      // 2. ส่งคำขอไปบวกคะแนนที่ Apps Script ในพื้นหลัง
-      fetch(`${API_URL}?action=incrementView&id=${id}`).catch(err => console.log(err));
+      // บันทึกลง Google Sheet
+      fetch(`${API_URL}?action=incrementView&id=${album.id}`).catch(err => console.log(err));
 
-      // 3. เปิดลิงก์อัลบั้ม Google Photos ในแท็บใหม่
-      if (photosUrl && photosUrl.startsWith('http')) {
-        window.open(photosUrl, '_blank');
+      // เปิด Google Photos
+      if (album.photos_url && album.photos_url.startsWith('http')) {
+        window.open(album.photos_url, '_blank');
       } else {
-        alert('ยังไม่มีลิงก์อัลบั้มสำหรับกิจกรรมนี้');
+        alert('ไม่พบบัญชีลิงก์สำหรับอัลบั้มนี้');
       }
     }
 
-    function showError(msg) {
-      const grid = document.getElementById('album-grid');
-      grid.innerHTML = `<div class="col-span-full text-center py-10 text-red-500">${msg}</div>`;
-    }
-
-    // เริ่มทำงาน
     loadAlbums();
   </script>
 </body>
